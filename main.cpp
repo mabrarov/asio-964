@@ -23,20 +23,20 @@ void server()
   server.accept(s, ec);
   if (ec)
   {
-    std::cerr << "accept() failed: " << ec << '\n';
+    std::cerr << "server: accept() failed: " << ec << '\n';
     return;
   }
   boost::asio::write(s, boost::asio::buffer("start\n", 6), ec);
   if (ec)
   {
-    std::cerr << "write() failed: " << ec << '\n';
+    std::cerr << "server: write() failed: " << ec << '\n';
     return;
   }
   std::this_thread::sleep_for(std::chrono::seconds(130));
   boost::asio::write(s, boost::asio::buffer("end\n", 4), ec);
   if (ec)
   {
-    std::cerr << "write() failed: " << ec << '\n';
+    std::cerr << "server: write() failed: " << ec << '\n';
     return;
   }
 }
@@ -60,14 +60,14 @@ int main(int argc, char* argv[])
   s.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::loopback(), port), ec);
   if (ec)
   {
-    std::cerr << "connect(loopback, " <<  port << ") failed: " << ec << '\n';
+    std::cerr << "client: connect(loopback, " <<  port << ") failed: " << ec << '\n';
     return 1;
   }
 
   s.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
   if (ec)
   {
-    std::cerr << "shutdown(shutdown_send) failed: " << ec << '\n';
+    std::cerr << "client: shutdown(shutdown_send) failed: " << ec << '\n';
     return 2;
   }
 
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     size_t n = s.read_some(boost::asio::buffer(buffer, sizeof(buffer)), ec);
     if (ec)
     {
-      std::cerr << "read_some() failed: " << ec << '\n';
+      std::cerr << "client: read_some() failed: " << ec << '\n';
       return 3;
     }
 
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
   s.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::loopback(), port));
   if (!s)
   {
-    std::cerr << "connect(loopback, " <<  port << ") failed: " << ec << '\n';
+    std::cerr << "client: connect(loopback, " <<  port << ") failed: " << ec << '\n';
     return 1;
   }
 
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
   ec = s.error();
   if (ec)
   {
-    std::cerr << "getline() failed: " << ec << '\n';
+    std::cerr << "client: getline() failed: " << ec << '\n';
     return 2;
   }
 
