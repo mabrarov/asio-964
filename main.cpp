@@ -6,6 +6,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <boost/numeric/conversion/cast.hpp>
 #include <boost/asio.hpp>
 
 namespace {
@@ -39,6 +40,24 @@ void server()
     std::cerr << "server: write() failed: " << ec << '\n';
     return;
   }
+
+  s.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+  if (ec)
+  {
+    std::cerr << "server: shutdown(shutdown_send) failed: " << ec << '\n';
+  }
+
+  // Wait for EOF before closing connection
+  do
+  {
+    char buffer[512];
+    s.read_some(boost::asio::buffer(buffer, sizeof(buffer)), ec);
+  } while (!ec);
+
+  if (boost::asio::error::eof != ec)
+  {
+    std::cerr << "server: read_some() failed: " << ec << '\n';
+  }
 }
 
 }
@@ -64,25 +83,30 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  s.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-  if (ec)
-  {
-    std::cerr << "client: shutdown(shutdown_send) failed: " << ec << '\n';
-    return 2;
-  }
-
   for (;;)
   {
     char buffer[512];
     size_t n = s.read_some(boost::asio::buffer(buffer, sizeof(buffer)), ec);
-    if (ec)
+    if (ec && boost::asio::error::eof != ec)
     {
       std::cerr << "client: read_some() failed: " << ec << '\n';
       return 3;
     }
 
-    std::cout.write(buffer, n);
+    std::cout.write(buffer, boost::numeric_cast<std::streamsize>(n));
     std::cout.flush();
+
+    if (boost::asio::error::eof == ec)
+    {
+      break;
+    }
+  }
+
+  s.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+  if (ec)
+  {
+    std::cerr << "client: shutdown(shutdown_send) failed: " << ec << '\n';
+    return 2;
   }
 
 #else
@@ -97,18 +121,19 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  s.rdbuf()->shutdown(boost::asio::ip::tcp::socket::shutdown_send);
   std::string line;
   while (std::getline(s, line))
   {
     std::cout << line << std::endl;
   }
   ec = s.error();
-  if (ec)
+  if (ec && boost::asio::error::eof != ec)
   {
     std::cerr << "client: getline() failed: " << ec << '\n';
     return 2;
   }
+
+  s.rdbuf()->shutdown(boost::asio::ip::tcp::socket::shutdown_send);
 
 #endif
 
